@@ -1,6 +1,6 @@
 #Clone 專案
 
-git clone <repo>
+git clone https://github.com/l-814/shrimp.git
 
 #建立虛擬環境
 
@@ -15,7 +15,3 @@ source venv/bin/activate
 venv\Scripts\activate  
 
 pip install -r requirements.txt
-
-
-
-
