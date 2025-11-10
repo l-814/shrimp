@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <h1>註冊帳號</h1>
+        <form action="{{ url_for('register') }}" method="POST">
+            <input type="text" name="username" placeholder="帳號" required />
+            <input type="password" name="password" placeholder="密碼" required />
+            <input type="password" name="confirm" placeholder="確認密碼" required />
+            <button type="submit">註冊</button>
+        </form>
+        <div style="color:red">
+            {% for msg in get_flashed_messages() %}
+                <p class="flash">{{ msg }}</p>
+            {% endfor %}
+        </div>
+        <div class="register-link">
+            <p>已經有帳號了？<a href="{{ url_for('home') }}">回登入</a></p>
+        </div>
+    </div>
+</body>
+</html>

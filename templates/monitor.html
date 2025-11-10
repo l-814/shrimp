@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>異常事件查詢</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/title.css') }}">
+</head>
+<body>
+    <div class="top-bar">
+        <div class="left-area">
+            <div class="menu-toggle" id="menuToggle">&#9776;</div>
+            <div class="title">
+                <a href="{{ url_for('dashboard') }}">宜蘭五結奇利海岸</a>
+            </div>
+        </div>
+
+        <div class="mobile-menu" id="mobileMenu">
+            <div class="menu-links">
+                <a href="#">監測系統</a>
+                <a href="{{ url_for('oddset') }}">異常值設定</a>
+                <a href="{{ url_for('history') }}">歷史資料</a>
+            </div>
+            <div class="logout-btn mobile-logout">
+                <a href="{{ url_for('logout') }}">登出</a>
+            </div>
+        </div>
+
+        <div class="right-area">
+            <div class="menu-links">
+                <a href="#">監測系統</a>
+                <a href="{{ url_for('oddset') }}">異常值設定</a>
+                <a href="{{ url_for('history') }}">歷史資料</a>
+                <!-- <a href="#">掃描 QR Code</a> -->
+            </div>
+        </div>
+        <div class="user-area">
+            <div class="logout-btn" title="登出">
+                <a href="{{ url_for('logout') }}">登出</a>
+            </div>
+        </div>
+    </div>
+<!-- 查詢控制區 -->
+    <main class="main-content">
+        <section class="controls">
+            <form id="queryForm" action="#" method="GET">
+                <label for="poolSelect">選擇池號：</label>
+                <select id="poolSelect" name="pool">
+                    <option value="all" selected>全部池號</option>
+                    <option value="1">水池 1</option>
+                    <option value="2">水池 2</option>
+                    <option value="3">水池 3</option>
+                    <option value="4">水池 4</option>
+                </select>
+
+                <label for="oddSelect">事件選擇：</label>
+                <select id="oddSelect" name="event">
+                    <option value="allodd" selected>全部異常事件</option>
+                    <option value="waterodd">水質異常</option>
+                    <option value="actionodd">行為異常</option>
+                    <option value="foododd">飼料異常</option>
+                </select>
+
+                <input type="submit" value="查詢" class="btn-submit">
+            </form>
+        </section>
+
+        <section id="resultSection">
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>池號</th>
+                        <th>事件類型</th>
+                        <th>異常描述</th>
+                        <th>發生時間</th>
+                        <th>狀態</th>
+                    </tr>
+                </thead>
+                <tbody id="alerts-tbody">
+                    <tr><td colspan="5" style="text-align:center;">載入中...</td></tr>
+                </tbody>
+            </table>
+
+            <!-- 分頁控制 -->
+            <div id="pagination">
+                <button id="prevPage">上一頁</button>
+                <span id="pageInfo">第 1 頁</span>
+                <button id="nextPage">下一頁</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/title.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/monitor.js') }}"></script>
+
+</body>
+</html>

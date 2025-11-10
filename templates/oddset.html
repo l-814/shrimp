@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>異常值設定｜宜蘭五結奇利海岸</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/title.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/oddset.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css">
+</head>
+<body>
+    <div class="top-bar">
+        <div class="left-area">
+            <div class="menu-toggle" id="menuToggle">&#9776;</div>
+            <div class="title">
+                <a href="{{ url_for('dashboard') }}">宜蘭五結奇利海岸</a>
+            </div>
+        </div>
+
+        <div class="mobile-menu" id="mobileMenu">
+            <div class="menu-links">
+                <a href="{{ url_for('monitor') }}">監測系統</a>
+                <a href="#">異常值設定</a>
+                <a href="{{ url_for('history') }}">歷史資料</a>
+            </div>
+            <div class="logout-btn mobile-logout">
+                <a href="{{ url_for('logout') }}">登出</a>
+            </div>
+        </div>
+
+        <div class="right-area">
+            <div class="menu-links">
+                <a href="{{ url_for('monitor') }}">監測系統</a>
+                <a href="#">異常值設定</a>
+                <a href="{{ url_for('history') }}">歷史資料</a>
+            </div>
+        </div>
+        <div class="user-area">
+            <div class="logout-btn" title="登出">
+                <a href="{{ url_for('logout') }}">登出</a>
+            </div>
+        </div>
+    </div>
+
+    <main class="container">
+        <header class="page-heading">
+            <h1>異常值設定</h1>
+            <div class="info">
+                <p id="last-updated">最後更新：{{ last_updated }}</p>
+                <p id="message"></p>
+            </div>
+        </header>
+
+        <form id="env-form" method="POST" action="{{ url_for('oddset') }}">
+            <section class="setting" data-key="temp" data-step="0.1" data-min="0" data-max="50">
+                <div class="status-row">
+                    <label for="temp-min">溫度 (°C)</label>
+                    <div id="temp-status" class="status"></div>
+                </div>
+                <div class="input-group">
+                    <input id="temp-min" type="number" step="0.1" value="{{ oddset.temp_min }}">
+                    <div id="temp-range"></div>
+                    <input id="temp-max" type="number" step="0.1" value="{{ oddset.temp_max }}">
+                </div>
+            </section>
+
+            <section class="setting" data-key="psu" data-step="0.1" data-min="0" data-max="50">
+                <div class="status-row">
+                    <label for="psu-min">鹽度 (psu)</label>
+                    <div id="psu-status" class="status"></div>
+                </div>
+                <div class="input-group">
+                    <input id="psu-min" type="number" step="0.1" value="{{ oddset.psu_min }}">
+                    <div id="psu-range"></div>
+                    <input id="psu-max" type="number" step="0.1" value="{{ oddset.psu_max }}">
+                </div>
+            </section>
+
+            <section class="setting" data-key="ph" data-step="0.1" data-min="0" data-max="14">
+                <div class="status-row">
+                    <label for="ph-min">pH</label>
+                    <div id="ph-status" class="status"></div>
+                </div>
+                <div class="input-group">
+                    <input id="ph-min" type="number" step="0.1" value="{{ oddset.ph_min }}">
+                    <div id="ph-range"></div>
+                    <input id="ph-max" type="number" step="0.1" value="{{ oddset.ph_max }}">
+                </div>
+            </section>
+
+            <section class="setting" data-key="do" data-step="1" data-min="0" data-max="1000">
+                <div class="status-row">
+                    <label for="do-min">溶氧 (mg/L)</label>
+                    <div id="do-status" class="status"></div>
+                </div>
+                <div class="input-group">
+                    <input id="do-min" type="number" value="{{ oddset.do_min }}">
+                    <div id="do-range"></div>
+                    <input id="do-max" type="number" value="{{ oddset.do_max }}">
+                </div>
+            </section>
+
+            <section class="setting" data-key="orp" data-step="1" data-min="0" data-max="1000">
+                <div class="status-row">
+                    <label for="orp-min">氧化還原電位 (mV)</label>
+                    <div id="orp-status" class="status"></div>
+                </div>
+                <div class="input-group">
+                    <input id="orp-min" type="number" value="{{ oddset.orp_min }}">
+                    <div id="orp-range"></div>
+                    <input id="orp-max" type="number" value="{{ oddset.orp_max }}">
+                </div>
+            </section>
+
+            <div class="save">
+                <button type="submit">儲存設定</button>
+            </div>
+        </form>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/title.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
+    <script src="{{ url_for('static', filename='js/oddset.js') }}"></script>
+</body>
+</html>

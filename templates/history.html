@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歷史資料</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/title.css') }}">
+</head>
+<body>
+    <div class="top-bar">
+        <div class="left-area">
+            <div class="title">
+                <a href="{{ url_for('dashboard') }}">宜蘭五結奇利海岸</a>
+            </div>
+        </div>
+        <div class="right-area">
+            <div class="menu-links">
+                <a href="{{ url_for('monitor') }}">監測系統</a>
+                <a href="{{ url_for('oddset') }}">異常值設定</a>
+                <a href="#">歷史資料</a>
+                <!-- <a href="#">掃描 QR Code</a> -->
+            </div>
+        </div>
+        <div class="user-area">
+            <div class="logout-btn" title="登出">
+                <a href="{{ url_for('logout') }}">登出</a>
+            </div>
+        </div>
+    </div>
+    <div class="date">
+        <form id="history_data" method="POST" action="{{ url_for('history') }}">
+            <label for="">開始日期</label>
+            <input type="date" name="date" id="date">
+            <label for="">結束日期</label>
+            <input type="date" name="date" id="date">
+            <div class="save">
+                <button type="submit">查詢</button>
+            </div>
+        </form>
+
+        <input type="date"
+       value="2020-04-20"
+       min="2020-04-01"
+       max="2022-04-30"
+       >
+        <!-- 查詢按鈕 -->
+        <button onclick="fetchLatestData()">查詢最新資料</button>
+
+        <!-- 自動刷新 -->
+        <!-- <label>
+            <input type="checkbox" id="autoRefresh" />
+            自動更新
+        </label> -->
+
+
+            <main class="main-content">
+                <section class="controls">
+                    <form id="history" action="#" method="GET">
+                        <input type="submit" value="查詢" class="btn-submit">
+                    </form>
+                </section>
+                
+                <section id="resultSection">
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>池號</th>
+                                <th>溫度(°C)</th>
+                                <th>鹽度(psu)</th>
+                                <th>酸鹼值</th>
+                                <th>溶氧(mg/L)</th>
+                                <th>氧化還原電位(mV)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alerts-tbody">
+                            <tr><td colspan="5" style="text-align:center;">載入中...</td></tr>
+                        </tbody>
+                    </table>
+
+                    <!-- 分頁控制 -->
+                    <div id="pagination">
+                        <button id="prevPage">上一頁</button>
+                        <span id="pageInfo">第 1 頁</span>
+                        <button id="nextPage">下一頁</button>
+                    </div>
+                </section>
+        </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.min.js" integrity="sha512-n/G+dROKbKL3GVngGWmWfwK0yPctjZQM752diVYnXZtD/48agpUKLIn0xDQL9ydZ91x6BiOmTIFwWjjFi2kEFg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</body>
+</html>

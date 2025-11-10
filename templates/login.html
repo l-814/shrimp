@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <h1>登入系統</h1>
+        <form action="{{ url_for('login') }}" method="POST">
+            <input type="text" name="username" placeholder="帳號" required />
+            <input type="password" name="password" placeholder="密碼" required />
+            <button type="submit">登入</button>
+        </form>
+        <div class="register-link">
+            <form action="{{ url_for('register') }}" method="get">
+                <button type="submit">註冊帳號</button>
+            </form>
+        </div>
+        <div style="color:red">
+            {% for msg in get_flashed_messages() %}
+                <p class="flash">{{ msg }}</p>
+            {% endfor %}
+        </div>
+        <div class="divider">或</div>
+        <a href="{{ url_for('google.login') }}">
+            <button type="button" class="google-login">使用 Google 登入</button>
+        </a>
+    </div>
+    <!-- <script src="login.js"></script> -->
+    <!-- <script src="{{ url_for('static', filename='js/login.js') }}"></script> -->
+</body>
+</html>

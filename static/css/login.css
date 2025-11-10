@@ -1,0 +1,123 @@
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #cacaca;
+    font-family: 'Poppins', 'Noto Sans TC', sans-serif;
+    color: #333333;
+}
+
+.login-container {
+    /* margin: 0px 0px 0px auto; */
+    width: min(320px, 92vw);
+    padding: 32px 30px;
+    border-radius: 22px;
+    background: #ffffff;
+    border: 1px solid rgba(214, 219, 228, 0.9);
+    box-shadow: 0 24px 40px rgba(15, 23, 42, 0.16);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.login-container h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+    font-weight: 600;
+    color: #000000;
+}
+
+.login-container p {
+    margin: 0;
+    font-size: 13px;
+    color: #777777;
+}
+
+.login-container input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cfd7e6;
+    border-radius: 10px;
+    font-size: 15px;
+    background: #f9fbff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-container input:focus {
+    outline: none;
+    border-color: #466577;
+    box-shadow: 0 0 0 3px rgba(90, 169, 214, 0.18);
+}
+
+.login-container button {
+    width: 100%;
+    padding: 12px 0;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #5f6e73, #5f7a85);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 14px 26px rgba(73, 171, 210, 0.22);
+}
+
+.login-container button:hover {
+    transform: translateY(-1px);
+}
+
+.login-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.login-container form input + input {
+    margin-top: 4px;
+}
+
+.login-container form button {
+    margin-top: 4px;
+}
+
+.divider {
+    position: relative;
+    /* margin: 2px 0; */
+    font-size: 13px;
+    font-weight: 500;
+    color: #6c7582;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 38%;
+    height: 1px;
+    background: #d6dbe4;
+}
+
+.divider::before {
+    left: 0;
+}
+
+.divider::after {
+    right: 0;
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        padding: 26px 22px;
+        gap: 16px;
+    }
+
+    .login-container button,
+    .login-container input {
+        font-size: 14px;
+    }
+}
