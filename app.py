@@ -6,6 +6,8 @@ from datetime import datetime
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
 import pytz
+# IoTtalk SDK
+import DAN
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key")
@@ -13,6 +15,17 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key")
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 tz = pytz.timezone('Asia/Taipei')
+
+# ========== IoTtalk 設定 ==========
+ServerURL = 'https://iottalk.niu.edu.tw'   # IoTtalk 伺服器
+dm_name = 'Shrimp_Control'                 # Device Model
+device_id = 'flask_dashboard'              # 給 Flask 用的 device 名稱
+odf_list = ['DO-O', 'ORP-O', 'PH-O', 'Salinity-O', 'Temperature-O']
+
+DAN.profile['dm_name'] = dm_name
+DAN.profile['df_list'] = odf_list
+DAN.profile['d_name'] = device_id
+DAN.device_registration_with_retry(ServerURL, device_id)
 
 os.makedirs(app.instance_path, exist_ok=True)
 DB_PATH = os.path.join(app.instance_path, 'users.db')

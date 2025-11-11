@@ -3,7 +3,8 @@ let currentSetting = '';
 
 function openModal(settingType) {
     currentSetting = settingType;
-    document.getElementById('settingModal').style.display = 'block';
+    const modal = document.getElementById('settingModal');
+    modal.style.display = 'flex';
     document.getElementById('modalError').style.display = 'none';
 
     const input = document.getElementById('modalInput');

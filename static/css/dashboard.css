@@ -237,6 +237,8 @@ a {
     z-index: 120;
 }
 
+
+
 .modal-content {
     width: min(360px, 92vw);
     border-radius: 16px;
@@ -244,7 +246,12 @@ a {
     border: 1px solid rgba(214, 219, 228, 0.95);
     box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
     padding: 24px 26px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
 }
+
+
 
 .modal-content h4 {
     margin: 0 0 16px;
@@ -310,6 +317,17 @@ a {
     .water-quality {
         padding: 14px 16px;
         gap: 14px;
+    }
+
+    .modal {
+        padding: 16px;
+        align-items: flex-start;
+    }
+
+    .modal-content {
+        width: 100%;
+        margin-top: 56px;
+        padding: 20px;
     }
 
     .control-buttons {
