@@ -237,41 +237,101 @@ a {
     z-index: 120;
 }
 
-
-
 .modal-content {
-    width: min(360px, 92vw);
-    border-radius: 16px;
+    width: min(420px, 92vw);
+    border-radius: 20px;
     background: rgba(252, 253, 255, 0.98);
     border: 1px solid rgba(214, 219, 228, 0.95);
-    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
-    padding: 24px 26px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.16);
+    padding: 26px 30px;
     position: relative;
     max-height: 90vh;
     overflow-y: auto;
 }
 
-
-
-.modal-content h4 {
-    margin: 0 0 16px;
-    font-weight: 600;
+.setting-modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
 }
 
-.modal-content button {
-    margin-right: 8px;
-    padding: 8px 16px;
+.setting-modal h4 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.setting-modal__controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.setting-modal__controls label {
+    font-weight: 600;
+    color: #475569;
+}
+
+#modalInput {
+    width: 70px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    font-size: 17px;
+}
+
+.setting-modal__input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 100px) 1fr;
+    gap: 12px;
+    align-items: center;
+}
+
+#modalRange {
+    width: 100%;
+}
+
+.setting-modal__hint {
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.setting-modal__error {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.setting-modal__actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+}
+
+.setting-modal__actions button {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 12px;
     border: none;
-    border-radius: 999px;
-    background: #2563eb;
-    color: #ffffff;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.modal-content button:hover {
-    background: #1d4ed8;
+.setting-modal__actions button.primary {
+    background: linear-gradient(135deg, #2563eb, #38bdf8);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
+}
+
+.setting-modal__actions button.ghost {
+    background: rgba(226, 232, 240, 0.8);
+    color: #1f2937;
+}
+
+.setting-modal__actions button:hover {
+    transform: translateY(-1px);
 }
 
 @media (max-width: 960px) {

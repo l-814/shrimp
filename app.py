@@ -6,8 +6,12 @@ from datetime import datetime
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
 import pytz
+import requests
 # IoTtalk SDK
 import DAN
+from linebot import LineBotApi
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key")
@@ -29,6 +33,157 @@ DAN.device_registration_with_retry(ServerURL, device_id)
 
 os.makedirs(app.instance_path, exist_ok=True)
 DB_PATH = os.path.join(app.instance_path, 'users.db')
+
+
+def ensure_alert_schema():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='alerts'")
+    if not c.fetchone():
+        conn.close()
+        return
+
+    c.execute('PRAGMA table_info(alerts)')
+    columns = {row[1] for row in c.fetchall()}
+
+    if 'start_time' not in columns:
+        c.execute('ALTER TABLE alerts ADD COLUMN start_time TEXT')
+    if 'end_time' not in columns:
+        c.execute('ALTER TABLE alerts ADD COLUMN end_time TEXT')
+    if 'is_notified' not in columns:
+        c.execute("ALTER TABLE alerts ADD COLUMN is_notified INTEGER DEFAULT 0")
+    if 'notified_at' not in columns:
+        c.execute('ALTER TABLE alerts ADD COLUMN notified_at TEXT')
+    if 'notify_count' not in columns:
+        c.execute('ALTER TABLE alerts ADD COLUMN notify_count INTEGER DEFAULT 0')
+
+    conn.commit()
+    conn.close()
+
+
+ensure_alert_schema()
+
+LINE_NOTIFY_TOKEN = os.environ.get("LINE_NOTIFY_TOKEN")
+LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+_line_user_ids = os.environ.get("LINE_CHANNEL_USER_IDS") or os.environ.get("LINE_CHANNEL_USER_ID")
+LINE_CHANNEL_RECIPIENTS = [uid.strip() for uid in (_line_user_ids.split(',') if _line_user_ids else []) if uid.strip()]
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN) if LINE_CHANNEL_ACCESS_TOKEN else None
+
+EVENT_TYPE_MAP = {
+    'temp': '水質異常',
+    'psu': '水質異常',
+    'ph': '水質異常',
+    'do': '水質異常',
+    'orp': '水質異常',
+    'behavior': '行為異常',
+    'food': '飼料異常'
+}
+
+SENSOR_NAME_MAP = {
+    'temp': '溫度',
+    'psu': '鹽度',
+    'ph': 'pH ',
+    'do': '溶氧',
+    'orp': 'ORP ',
+    'behavior': '行為',
+    'food': '餵食'
+}
+
+
+def send_alert(message: str):
+    if not message:
+        return False, '訊息內容為空'
+
+    errors = []
+
+    if line_bot_api and LINE_CHANNEL_RECIPIENTS:
+        try:
+            for uid in LINE_CHANNEL_RECIPIENTS:
+                line_bot_api.push_message(uid, TextSendMessage(text=message))
+            return True, 'LINE Bot 推播成功'
+        except LineBotApiError as exc:
+            err = f'LINE Bot 推播失敗: {exc}'
+            app.logger.error(err)
+            errors.append(err)
+
+    token = LINE_NOTIFY_TOKEN
+    if token:
+        try:
+            response = requests.post(
+                "https://notify-api.line.me/api/notify",
+                headers={"Authorization": f"Bearer {token}"},
+                data={'message': message},
+                timeout=10
+            )
+            response.raise_for_status()
+            return True, 'LINE Notify 已送出'
+        except requests.RequestException as exc:
+            err = f'LINE Notify 傳送失敗: {exc}'
+            app.logger.error(err)
+            errors.append(str(exc))
+
+    if errors:
+        return False, '；'.join(errors)
+
+    app.logger.warning('未設定任何通知方式，無法傳送訊息')
+    return False, '未設定任何通知方式'
+
+
+def build_alert_message(pool_id, sensor_type, value, description, event_time, notify_count):
+    event_name = EVENT_TYPE_MAP.get(sensor_type, sensor_type)
+    sensor_name = SENSOR_NAME_MAP.get(sensor_type, sensor_type)
+
+    if sensor_type in {"behavior", "food"}:
+        detail = description
+    else:
+        detail = f"異常項目：{sensor_name}\n異常數值：{value}\n正常範圍：{description}\n"
+
+    return (
+        f"{event_name}通知\n"
+        f"池號：{pool_id} 號\n"
+        f"{detail}"
+        # f"異常項目：{sensor_name}\n"
+        # f"異常數值：{value}\n"
+        # f"正常範圍：{description}\n"
+        f"發生時間：{event_time}\n"
+        f"本次為第{notify_count}次通知，請盡快處理！"
+    )
+
+
+def upsert_alert_record(cursor, pool_id, sensor_type, description, value, timestamp):
+    cursor.execute(
+        "SELECT id FROM alerts WHERE pool_id = ? AND sensor_type = ? AND end_time IS NULL",
+        (pool_id, sensor_type)
+    )
+    row = cursor.fetchone()
+    if row:
+        cursor.execute(
+            "UPDATE alerts SET description = ?, value = ?, timestamp = ? WHERE id = ?",
+            (description, value, timestamp, row[0])
+        )
+        return row[0], False
+
+    cursor.execute(
+        '''
+        INSERT INTO alerts (pool_id, sensor_type, description, value, timestamp, status, start_time, end_time, is_notified)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0)
+        ''',
+        (pool_id, sensor_type, description, value, timestamp, '未處理', timestamp)
+    )
+    return cursor.lastrowid, True
+
+
+def resolve_alert_record(cursor, pool_id, sensor_type, timestamp):
+    cursor.execute(
+        "SELECT id FROM alerts WHERE pool_id = ? AND sensor_type = ? AND end_time IS NULL",
+        (pool_id, sensor_type)
+    )
+    row = cursor.fetchone()
+    if row:
+        cursor.execute(
+            "UPDATE alerts SET end_time = ?, timestamp = ? WHERE id = ?",
+            (timestamp, timestamp, row[0])
+        )
 
 GOOGLE_CLIENT_ID = "510195146091-pi9c4kbmeaompb0nopu5p06r63bjbpte.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = "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"
@@ -283,8 +438,21 @@ def latest_data(pool_id):
     for sensor, is_abn in abnormal.items():
         if is_abn:
             desc = range_map[sensor]
-            c.execute('INSERT INTO alerts (pool_id, sensor_type, description, value, timestamp, status) VALUES (?, ?, ?, ?, ?, ?)',
-                      (pool_id, sensor, desc, value_map[sensor], timestamp, '未處理'))
+            alert_id, created = upsert_alert_record(c, pool_id, sensor, desc, value_map[sensor], timestamp)
+            if created:
+                notify_count = 1
+                message = build_alert_message(pool_id, sensor, value_map[sensor], desc, timestamp, notify_count)
+                success, detail = send_alert(message)
+                notified_at = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S") if success else None
+                if success:
+                    c.execute(
+                        "UPDATE alerts SET is_notified = 1, notified_at = ?, notify_count = ? WHERE id = ?",
+                        (notified_at, notify_count, alert_id)
+                    )
+                else:
+                    app.logger.warning('通知傳送失敗：%s', detail)
+        else:
+            resolve_alert_record(c, pool_id, sensor, timestamp)
 
     conn.commit()
     conn.close()
@@ -367,7 +535,12 @@ def get_alerts():
     pool_id = request.args.get('pool', 'all')
     event_type = request.args.get('event', 'allodd')
 
-    query = "SELECT pool_id, sensor_type, description, value, timestamp, status FROM alerts WHERE 1=1"
+    query = """
+        SELECT id, pool_id, sensor_type, description, value, timestamp, status,
+               start_time, end_time, is_notified, notified_at, notify_count
+        FROM alerts
+        WHERE 1=1
+    """
     params = []
     if pool_id != 'all':
         # 你的池號是字串 '1', '2'，資料庫 pool_id 可能是字串也可能是類似 pool_1，請確認一致
@@ -394,39 +567,82 @@ def get_alerts():
     rows = c.execute(query, params).fetchall()
     conn.close()
 
-    event_type_map = {
-        'temp': '水質異常',
-        'psu': '水質異常',
-        'ph': '水質異常',
-        'do': '水質異常',
-        'orp': '水質異常',
-        'behavior': '行為異常',
-        'food': '飼料異常'
-    }
-    sensor_name_map = {
-        'temp': '溫度異常',
-        'psu': '鹽度異常',
-        'ph': 'pH異常',
-        'do': '溶氧異常',
-        'orp': 'ORP異常',
-        'behavior': '行為異常',
-        'food': '餵食異常'
-    }
-
     results = []
     for row in rows:
-        event_display = event_type_map.get(row['sensor_type'], row['sensor_type'])
-        sensor_display = sensor_name_map.get(row['sensor_type'], row['sensor_type'])
+        event_display = EVENT_TYPE_MAP.get(row['sensor_type'], row['sensor_type'])
+        sensor_display = SENSOR_NAME_MAP.get(row['sensor_type'], row['sensor_type'])
         description = f"{sensor_display}： {row['value']} (正常範圍：{row['description']})"
         results.append({
+            'id': row['id'],
             'pool': str(row['pool_id']),
             'type': event_display,
             'description': description,
-            'time': row['timestamp'],
-            'status': row['status'] if row['status'] else '未處理'
+            'time': row['start_time'] or row['timestamp'],
+            'end_time': row['end_time'],
+            'status': row['status'] if row['status'] else '未處理',
+            'notified': bool(row['is_notified']),
+            'notified_at': row['notified_at'],
+            'active': row['end_time'] is None,
+            'notify_count': row['notify_count'] or 0
         })
 
     return jsonify(results)
+
+
+@app.route('/api/alerts/<int:alert_id>/status', methods=['POST'])
+def update_alert_status(alert_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT status FROM alerts WHERE id = ?', (alert_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'success': False, 'message': '找不到異常事件'}), 404
+
+    if row[0] == '已處理':
+        conn.close()
+        return jsonify({'success': True, 'status': '已處理'})
+
+    c.execute('UPDATE alerts SET status = ? WHERE id = ?', ('已處理', alert_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'status': '已處理'})
+
+
+@app.route('/api/alerts/<int:alert_id>/notify', methods=['POST'])
+def notify_alert(alert_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    row = c.execute('SELECT * FROM alerts WHERE id = ?', (alert_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'success': False, 'message': '找不到異常事件'}), 404
+
+    event_time = row['start_time'] or row['timestamp']
+    current_count = row['notify_count'] or 0
+    new_count = current_count + 1
+    message = build_alert_message(
+        row['pool_id'],
+        row['sensor_type'],
+        row['value'],
+        row['description'],
+        event_time,
+        new_count
+    )
+    success, detail = send_alert(message)
+    if success:
+        notified_at = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+        c.execute(
+            'UPDATE alerts SET is_notified = 1, notified_at = ?, notify_count = ? WHERE id = ?',
+            (notified_at, new_count, alert_id)
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'notified': True, 'notified_at': notified_at, 'notify_count': new_count})
+
+    conn.close()
+    return jsonify({'success': False, 'message': detail}), 500
 
 @app.route('/logout')
 def logout():

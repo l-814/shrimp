@@ -91,8 +91,8 @@
                 </div>
             </section>
             <div class="control-buttons">
-                <button>投料狀況</button>
-                <button>活動狀況</button>
+                <button>投料</button>
+                <button>行為</button>
             </div>
         </div>
     </div>
@@ -104,17 +104,25 @@
     </div>
 
     <div id="settingModal" class="modal">
-        <div class="modal-content">
-            <h4 id="modalTitle">設定項目</h4>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="number" id="modalInput" placeholder="請輸入數值" style="width: 80px;">
-                <input type="range" id="modalRange">
+        <div class="modal-content setting-modal">
+            <div class="setting-modal__header">
+                <div>
+                    <h4 id="modalTitle">設定項目</h4>
+                </div>
+                <button class="close-modal-btn" onclick="closeModal()">×</button>
             </div>
-            <div style="margin-top: 15px;">
-                <button onclick="applySetting()">確定</button>
-                <button onclick="closeModal()">取消</button>
+            <div class="setting-modal__controls">
+                <label for="modalInput">輸入數值</label>
+                <div class="setting-modal__input-row">
+                    <input type="number" id="modalInput" placeholder="請輸入數值" step="0.1">
+                    <input type="range" id="modalRange">
+                </div>
             </div>
-            <p id="modalError" style="color: red; display: none;">請輸入正確數值</p>
+            <p id="modalError" class="setting-modal__error" style="display: none;">請輸入正確數值</p>
+            <div class="setting-modal__actions">
+                <button class="primary" onclick="applySetting()">確定</button>
+                <button class="ghost" onclick="closeModal()">取消</button>
+            </div>
         </div>
     </div>
 
@@ -131,7 +139,7 @@
 
     <script>
         const historyData = {{ history_data | default({}) | tojson | safe }};
-        console.log('historyData:', historyData);
+        // console.log('historyData:', historyData);
     </script>
     <script src="{{ url_for('static', filename='js/title.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>

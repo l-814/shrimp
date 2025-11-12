@@ -96,8 +96,8 @@
 
 .chart-container {
     position: relative;
-    height: clamp(360px, 56vh, 480px);
-    padding: 14px 18px 60px;
+    height: clamp(420px, 60vh, 520px);
+    padding: 14px 18px 52px;
     border-radius: 18px;
     background: #ffffff;
     border: 1px solid rgba(226, 232, 240, 0.9);
@@ -107,6 +107,20 @@
 .chart-container .highcharts-container {
     width: 100% !important;
     height: 100% !important;
+}
+
+.chart-container .highcharts-legend {
+    display: flex !important;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding-top: 6px;
+}
+
+.chart-container .highcharts-legend-item text {
+    font-size: 13px;
+    font-weight: 600;
+    fill: #1f2937 !important;
 }
 
 @media (max-width: 900px) {
@@ -120,8 +134,8 @@
     }
 
     .chart-container {
-        height: clamp(320px, 54vh, 440px);
-        padding: 12px 16px 58px;
+        height: clamp(360px, 58vh, 480px);
+        padding: 12px 16px 46px;
     }
 }
 
@@ -151,8 +165,8 @@
     }
 
     .chart-container {
-        height: clamp(300px, 50vh, 380px);
-        padding: 12px 12px 58px;
+        height: clamp(340px, 58vh, 420px);
+        padding: 12px 12px 40px;
     }
 }
 
@@ -176,7 +190,7 @@
     }
 
     .chart-container {
-        height: clamp(260px, 46vh, 320px);
-        padding: 10px 10px 52px;
+        height: clamp(320px, 60vh, 400px);
+        padding: 10px 10px 32px;
     }
 }

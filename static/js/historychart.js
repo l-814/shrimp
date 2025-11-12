@@ -151,13 +151,19 @@
         updateChartHeading(metricConfig);
         destroyChart();
 
+        const isNarrowScreen = window.matchMedia('(max-width: 640px)').matches;
+        const chartHeight = isNarrowScreen ? 360 : 420;
+        const chartSpacing = isNarrowScreen ? [10, 10, 40, 12] : [14, 12, 60, 18];
+        const spacingBottom = isNarrowScreen ? 24 : 40;
+        const navigatorHeight = isNarrowScreen ? 56 : 70;
+
         chartInstance = Highcharts.stockChart('primary-chart-container', {
             chart: {
                 backgroundColor: 'transparent',
-                height: 420,
+                height: chartHeight,
                 animation: false,
-                spacing: [14, 12, 60, 18],
-                spacingBottom: 40,
+                spacing: chartSpacing,
+                spacingBottom,
             },
             colors: SERIES_COLORS,
             rangeSelector: {
@@ -200,7 +206,7 @@
             exporting: { enabled: false },
             navigator: {
                 enabled: true,
-                height: 70,
+                height: navigatorHeight,
                 margin: 16,
                 maskFill: 'rgba(59, 130, 246, 0.2)',
                 series: { lineColor: '#2563eb', lineWidth: 1, color: 'rgba(59, 130, 246, 0.25)' },

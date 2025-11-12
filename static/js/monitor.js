@@ -1,4 +1,4 @@
-const rowsPerPage = 9;
+const rowsPerPage = 8;
 let currentPage = 1;
 let allResults = [];
 
@@ -23,10 +23,102 @@ async function fetchAlerts() {
         renderTable(currentPage);
 
     } catch (err) {
-        alertsTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">錯誤: ${err.message}</td></tr>`;
+        alertsTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">錯誤: ${err.message}</td></tr>`;
         pageInfo.textContent = "";
         prevBtn.disabled = true;
         nextBtn.disabled = true;
+    }
+}
+
+function formatTimeString(value) {
+    return value ? value : '-';
+}
+
+function updateCachedAlert(alertId, changes) {
+    allResults = allResults.map(item => {
+        if (item.id === alertId) {
+            return Object.assign({}, item, changes);
+        }
+        return item;
+    });
+}
+
+function createStatusButton(alert) {
+    const button = document.createElement('button');
+    button.className = 'action-btn status-btn';
+    button.textContent = alert.status;
+    if (alert.status === '已處理') {
+        button.disabled = true;
+        return button;
+    }
+    button.addEventListener('click', () => handleStatusUpdate(alert.id, button));
+    return button;
+}
+
+function createNotifyButton(alert) {
+    const button = document.createElement('button');
+    button.className = 'action-btn notify-btn';
+    button.textContent = alert.notify_count > 0 ? '重新通知' : '未通知';
+    button.addEventListener('click', () => handleManualNotify(alert.id, button));
+    return button;
+}
+
+async function fetchJsonWithFallback(url, options = {}) {
+    const mergedOptions = Object.assign({ credentials: 'same-origin' }, options);
+    const response = await fetch(url, mergedOptions);
+    const rawText = await response.text();
+
+    let parsed;
+    try {
+        parsed = rawText ? JSON.parse(rawText) : {};
+    } catch (err) {
+        const snippet = rawText ? rawText.substring(0, 120) : '（無內容）';
+        throw new Error(`伺服器回傳非 JSON（HTTP ${response.status}）：${snippet}`);
+    }
+
+    return { response, data: parsed };
+}
+
+async function handleStatusUpdate(alertId, button) {
+    if (!confirm('是否確認已處理？')) {
+        return;
+    }
+    button.disabled = true;
+    try {
+        const { response, data } = await fetchJsonWithFallback(`/api/alerts/${alertId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || '狀態更新失敗');
+        }
+        updateCachedAlert(alertId, { status: data.status });
+        renderTable(currentPage);
+    } catch (error) {
+        alert(error.message);
+        button.disabled = false;
+    }
+}
+
+async function handleManualNotify(alertId, button) {
+    button.disabled = true;
+    try {
+        const { response, data } = await fetchJsonWithFallback(`/api/alerts/${alertId}/notify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || '通知失敗');
+        }
+        updateCachedAlert(alertId, {
+            notified: true,
+            notified_at: data.notified_at,
+            notify_count: data.notify_count || 1
+        });
+        renderTable(currentPage);
+    } catch (error) {
+        alert(error.message);
+        button.disabled = false;
     }
 }
 
@@ -34,7 +126,7 @@ function renderTable(page) {
     alertsTbody.innerHTML = "";
 
     if (allResults.length === 0) {
-        alertsTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">沒有異常事件</td></tr>`;
+        alertsTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">沒有異常事件</td></tr>`;
         pageInfo.textContent = "第 0 頁（共 0 頁）";
         prevBtn.disabled = true;
         nextBtn.disabled = true;
@@ -47,14 +139,24 @@ function renderTable(page) {
     const pageData = allResults.slice(start, end);
 
     pageData.forEach(alert => {
-        const tr = document.createElement("tr");
+        const tr = document.createElement('tr');
+
+        const statusCell = document.createElement('td');
+        statusCell.appendChild(createStatusButton(alert));
+
+        const notifyCell = document.createElement('td');
+        notifyCell.appendChild(createNotifyButton(alert));
+
         tr.innerHTML = `
             <td>${alert.pool}</td>
             <td>${alert.type}</td>
             <td>${alert.description}</td>
-            <td>${alert.time}</td>
-            <td>${alert.status}</td>
+            <td>${formatTimeString(alert.time)}</td>
+            <td>${formatTimeString(alert.end_time)}</td>
         `;
+
+        tr.appendChild(statusCell);
+        tr.appendChild(notifyCell);
         alertsTbody.appendChild(tr);
     });
 

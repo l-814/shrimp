@@ -10,7 +10,7 @@
 
 .top-bar {
     position: fixed;
-    top: 24px;
+    top: 12px;
     left: 50%;
     transform: translateX(-50%);
     width: min(1080px, 92vw);
@@ -172,6 +172,7 @@
         width: min(760px, 94vw);
         padding: 14px 20px;
         gap: 16px;
+        top: 0px;
     }
 
     .menu-links {

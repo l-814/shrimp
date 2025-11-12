@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,44 +43,47 @@
     </div>
 <!-- 查詢控制區 -->
     <main class="main-content">
-        <section class="controls">
-            <form id="queryForm" action="#" method="GET">
-                <label for="poolSelect">選擇池號：</label>
-                <select id="poolSelect" name="pool">
-                    <option value="all" selected>全部池號</option>
-                    <option value="1">水池 1</option>
-                    <option value="2">水池 2</option>
-                    <option value="3">水池 3</option>
-                    <option value="4">水池 4</option>
-                </select>
-
-                <label for="oddSelect">事件選擇：</label>
-                <select id="oddSelect" name="event">
-                    <option value="allodd" selected>全部異常事件</option>
-                    <option value="waterodd">水質異常</option>
-                    <option value="actionodd">行為異常</option>
-                    <option value="foododd">飼料異常</option>
-                </select>
-
-                <input type="submit" value="查詢" class="btn-submit">
-            </form>
-        </section>
-
         <section id="resultSection">
-            <table class="result-table">
-                <thead>
-                    <tr>
-                        <th>池號</th>
-                        <th>事件類型</th>
-                        <th>異常描述</th>
-                        <th>發生時間</th>
-                        <th>狀態</th>
-                    </tr>
-                </thead>
-                <tbody id="alerts-tbody">
-                    <tr><td colspan="5" style="text-align:center;">載入中...</td></tr>
-                </tbody>
-            </table>
+            <div class="controls">
+                <form id="queryForm" action="#" method="GET">
+                    <label for="poolSelect">選擇池號：</label>
+                    <select id="poolSelect" name="pool">
+                        <option value="all" selected>全部池號</option>
+                        <option value="1">水池 1</option>
+                        <option value="2">水池 2</option>
+                        <option value="3">水池 3</option>
+                        <option value="4">水池 4</option>
+                    </select>
+
+                    <label for="oddSelect">事件選擇：</label>
+                    <select id="oddSelect" name="event">
+                        <option value="allodd" selected>全部異常事件</option>
+                        <option value="waterodd">水質異常</option>
+                        <option value="actionodd">行為異常</option>
+                        <option value="foododd">飼料異常</option>
+                    </select>
+
+                    <input type="submit" value="查詢" class="btn-submit">
+                </form>
+            </div>
+            <div class="table-scroll">
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>池號</th>
+                            <th>事件類型</th>
+                            <th>異常描述</th>
+                            <th>發生時間</th>
+                            <th>結束時間</th>
+                            <th>狀態</th>
+                            <th>通知</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alerts-tbody">
+                        <tr><td colspan="7" style="text-align:center;">載入中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
 
             <!-- 分頁控制 -->
             <div id="pagination">
