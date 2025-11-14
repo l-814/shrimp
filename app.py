@@ -7,11 +7,9 @@ from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
 import pytz
 import requests
-# IoTtalk SDK
-import DAN
-from linebot import LineBotApi
-from linebot.exceptions import LineBotApiError
-from linebot.models import TextSendMessage
+# 若需DCbot回答問題
+# import discord
+# from discord.ext import commands
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key")
@@ -20,16 +18,6 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 tz = pytz.timezone('Asia/Taipei')
 
-# ========== IoTtalk 設定 ==========
-ServerURL = 'https://iottalk.niu.edu.tw'   # IoTtalk 伺服器
-dm_name = 'Shrimp_Control'                 # Device Model
-device_id = 'flask_dashboard'              # 給 Flask 用的 device 名稱
-odf_list = ['DO-O', 'ORP-O', 'PH-O', 'Salinity-O', 'Temperature-O']
-
-DAN.profile['dm_name'] = dm_name
-DAN.profile['df_list'] = odf_list
-DAN.profile['d_name'] = device_id
-DAN.device_registration_with_retry(ServerURL, device_id)
 
 os.makedirs(app.instance_path, exist_ok=True)
 DB_PATH = os.path.join(app.instance_path, 'users.db')
@@ -64,10 +52,10 @@ def ensure_alert_schema():
 ensure_alert_schema()
 
 LINE_NOTIFY_TOKEN = os.environ.get("LINE_NOTIFY_TOKEN")
-LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
-_line_user_ids = os.environ.get("LINE_CHANNEL_USER_IDS") or os.environ.get("LINE_CHANNEL_USER_ID")
-LINE_CHANNEL_RECIPIENTS = [uid.strip() for uid in (_line_user_ids.split(',') if _line_user_ids else []) if uid.strip()]
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN) if LINE_CHANNEL_ACCESS_TOKEN else None
+_discord_hooks = os.environ.get("DISCORD_WEBHOOKS") or os.environ.get("DISCORD_WEBHOOK_URL")
+DISCORD_WEBHOOKS = [hook.strip() for hook in (_discord_hooks.split(',') if _discord_hooks else []) if hook.strip()]
+DISCORD_BOT_NAME = os.environ.get("DISCORD_BOT_NAME", "Shrimp Monitor")
+DISCORD_AVATAR_URL = os.environ.get("DISCORD_AVATAR_URL")
 
 EVENT_TYPE_MAP = {
     'temp': '水質異常',
@@ -96,15 +84,22 @@ def send_alert(message: str):
 
     errors = []
 
-    if line_bot_api and LINE_CHANNEL_RECIPIENTS:
-        try:
-            for uid in LINE_CHANNEL_RECIPIENTS:
-                line_bot_api.push_message(uid, TextSendMessage(text=message))
-            return True, 'LINE Bot 推播成功'
-        except LineBotApiError as exc:
-            err = f'LINE Bot 推播失敗: {exc}'
-            app.logger.error(err)
-            errors.append(err)
+    if DISCORD_WEBHOOKS:
+        payload = {"content": message}
+        if DISCORD_BOT_NAME:
+            payload["username"] = DISCORD_BOT_NAME
+        if DISCORD_AVATAR_URL:
+            payload["avatar_url"] = DISCORD_AVATAR_URL
+
+        for hook in DISCORD_WEBHOOKS:
+            try:
+                resp = requests.post(hook, json=payload, timeout=10)
+                resp.raise_for_status()
+                return True, 'Discord 通知已送出'
+            except requests.RequestException as exc:
+                err = f'Discord 通知失敗: {exc}'
+                app.logger.error(err)
+                errors.append(err)
 
     token = LINE_NOTIFY_TOKEN
     if token:

@@ -17,10 +17,8 @@ env/
 # Flask 專案相關
 # ==========================
 *.sqbpro
-data_random.py
-git_teach.txt
 *.mp4
-1.py
+IOT/
 
 # ==========================
 # 編輯器與系統檔案
