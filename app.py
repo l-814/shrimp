@@ -51,6 +51,27 @@ def ensure_alert_schema():
 
 ensure_alert_schema()
 
+
+def ensure_pool_settings_schema():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS pool_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pool_id TEXT NOT NULL,
+            setting_type TEXT NOT NULL,
+            value REAL NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(pool_id, setting_type)
+        )
+        '''
+    )
+    conn.commit()
+    conn.close()
+
+
+ensure_pool_settings_schema()
+
 LINE_NOTIFY_TOKEN = os.environ.get("LINE_NOTIFY_TOKEN")
 _discord_hooks = os.environ.get("DISCORD_WEBHOOKS") or os.environ.get("DISCORD_WEBHOOK_URL")
 DISCORD_WEBHOOKS = [hook.strip() for hook in (_discord_hooks.split(',') if _discord_hooks else []) if hook.strip()]
@@ -76,6 +97,9 @@ SENSOR_NAME_MAP = {
     'behavior': '行為',
     'food': '餵食'
 }
+
+VALID_POOL_IDS = {'1', '2', '3', '4'}
+VALID_SETTING_TYPES = {'interval', 'feed'}
 
 
 def send_alert(message: str):
@@ -524,6 +548,91 @@ def api_history():
             })
 
     return jsonify(result)
+
+
+@app.route('/api/settings', methods=['GET', 'POST'])
+def pool_settings():
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': '未登入'}), 401
+
+    if request.method == 'GET':
+        pool_id = request.args.get('pool_id', '').strip()
+        setting_type = request.args.get('setting_type', '').strip()
+
+        if pool_id not in VALID_POOL_IDS or setting_type not in VALID_SETTING_TYPES:
+            return jsonify({'success': False, 'message': '參數不正確'}), 400
+
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        row = c.execute(
+            '''
+            SELECT value, updated_at
+            FROM pool_settings
+            WHERE pool_id = ? AND setting_type = ?
+            ''',
+            (pool_id, setting_type)
+        ).fetchone()
+        conn.close()
+
+        if not row:
+            return jsonify({'success': True, 'value': None, 'updated_at': None})
+
+        return jsonify({
+            'success': True,
+            'value': row['value'],
+            'updated_at': row['updated_at']
+        })
+
+    data = request.get_json(silent=True) or {}
+    pool_id = data.get('pool_id')
+    setting_type = data.get('setting_type')
+    value = data.get('value')
+
+    if pool_id is None or str(pool_id).strip() not in VALID_POOL_IDS:
+        return jsonify({'success': False, 'message': '池號不正確'}), 400
+    pool_id = str(pool_id).strip()
+
+    if setting_type not in VALID_SETTING_TYPES:
+        return jsonify({'success': False, 'message': '設定項目不正確'}), 400
+
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'message': '請輸入正確的數值'}), 400
+
+    if value <= 0:
+        return jsonify({'success': False, 'message': '數值需大於 0'}), 400
+
+    now = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            '''
+            INSERT INTO pool_settings (pool_id, setting_type, value, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(pool_id, setting_type) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at
+            ''',
+            (pool_id, setting_type, value, now)
+        )
+        conn.commit()
+    except sqlite3.Error as exc:
+        return jsonify({'success': False, 'message': f'資料庫錯誤: {exc}'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+    return jsonify({
+        'success': True,
+        'pool_id': pool_id,
+        'setting_type': setting_type,
+        'value': value,
+        'updated_at': now
+    })
 
 @app.route('/api/alerts')
 def get_alerts():

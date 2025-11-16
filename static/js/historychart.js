@@ -58,10 +58,28 @@
         return result;
     }
 
+    function normalizePoolKey(poolKey) {
+        if (!poolKey) return '';
+        const numeric = poolKey.replace(/\D/g, '');
+        return numeric ? `pool${numeric}` : poolKey.toLowerCase();
+    }
+
     function buildSeries(metricData) {
         if (!metricData) return [];
-        return Object.keys(metricData)
-            .sort()
+        const pools = Object.keys(metricData).sort();
+        if (!pools.length) return [];
+
+        const highlightPool =
+            pools.find(
+                (pool) =>
+                    normalizePoolKey(pool) === 'pool1' &&
+                    Array.isArray(metricData[pool]) &&
+                    metricData[pool].length > 0
+            ) ||
+            pools.find((pool) => Array.isArray(metricData[pool]) && metricData[pool].length > 0) ||
+            pools[0];
+
+        return pools
             .map((pool, index) => {
                 const points = (metricData[pool] || [])
                     .map((entry) => {
@@ -75,6 +93,7 @@
 
                 const sampledPoints = downsamplePoints(points, MAX_POINTS_PER_SERIES);
                 const baseColor = SERIES_COLORS[index % SERIES_COLORS.length];
+                const isPrimary = pool === highlightPool;
                 const navigatorLine = baseColor;
                 const navigatorFill = baseColor.startsWith('#') ? `${baseColor}33` : 'rgba(34, 197, 94, 0.25)';
 
@@ -82,6 +101,10 @@
                     type: 'line',
                     name: pool,
                     color: baseColor,
+                    visible: isPrimary,
+                    opacity: 1,
+                    lineWidth: isPrimary ? 2.2 : 1.4,
+                    zIndex: isPrimary ? 5 : 1,
                     data: sampledPoints,
                     navigatorOptions: {
                         color: navigatorFill,

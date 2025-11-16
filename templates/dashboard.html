@@ -97,7 +97,9 @@
         </div>
     </div>
 
-    <div class="fab" onclick="toggleMenu()">+</div>
+    <div class="fab" onclick="toggleMenu()">
+        <span class="fab__icon" aria-hidden="true">+</span>
+    </div>
     <div class="fab-menu" id="fabMenu">
         <button onclick="openModal('interval')">設定平台升降間隔時間</button>
         <button onclick="openModal('feed')">設定飼料量</button>
@@ -109,7 +111,16 @@
                 <div>
                     <h4 id="modalTitle">設定項目</h4>
                 </div>
-                <button class="close-modal-btn" onclick="closeModal()">×</button>
+                <button class="close-modal-btn" onclick="closeModal()">X</button>
+            </div>
+            <div class="setting-modal__pool">
+                <label for="poolSelect">選擇水池</label>
+                <select id="poolSelect">
+                    <option value="1">水池 1</option>
+                    <option value="2">水池 2</option>
+                    <option value="3">水池 3</option>
+                    <option value="4">水池 4</option>
+                </select>
             </div>
             <div class="setting-modal__controls">
                 <label for="modalInput">輸入數值</label>
@@ -117,6 +128,10 @@
                     <input type="number" id="modalInput" placeholder="請輸入數值" step="0.1">
                     <input type="range" id="modalRange">
                 </div>
+            </div>
+            <div class="setting-modal__status">
+                <span id="lastUpdateLabel">上次更新：--</span>
+                <span id="lastValueLabel">上次數值：--</span>
             </div>
             <p id="modalError" class="setting-modal__error" style="display: none;">請輸入正確數值</p>
             <div class="setting-modal__actions">

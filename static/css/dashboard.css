@@ -185,12 +185,20 @@ a {
     border-radius: 50%;
     border: 1px solid rgba(214, 219, 228, 0.9);
     background: rgba(246, 248, 252, 0.96);
-    display: grid;
-    place-items: center;
     color: #1f2937;
     box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.fab__icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1;
+    pointer-events: none;
+    font-weight: bold;
 }
 
 .fab:hover {
@@ -273,6 +281,26 @@ a {
     color: #475569;
 }
 
+.setting-modal__pool {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.setting-modal__pool label {
+    font-weight: 600;
+    color: #475569;
+}
+
+#poolSelect {
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 15px;
+    background: #fff;
+}
+
 #modalInput {
     width: 70px;
     padding: 8px 12px;
@@ -301,6 +329,19 @@ a {
     color: #ef4444;
     font-size: 13px;
     margin-top: 4px;
+}
+
+.setting-modal__status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #475569;
+}
+
+.setting-modal__status span strong {
+    color: #0f172a;
 }
 
 .setting-modal__actions {
