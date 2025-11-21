@@ -160,19 +160,45 @@ a {
     gap: 12px;
 }
 
-.control-buttons button {
-    border: 1px solid rgba(214, 219, 228, 0.9);
+.control-button {
+    border: none;
     border-radius: 16px;
     padding: 16px;
-    font-size: 15px;
     font-weight: 600;
     background: rgba(246, 248, 252, 0.96);
-    cursor: pointer;
+    cursor: default;
     transition: all 0.2s ease;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
 }
 
-.control-buttons button:hover {
-    background: #e7ecf3;
+.control-button:disabled {
+    opacity: 1;
+}
+
+.control-button__label ,.control-button__state{
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* .control-button__state {
+    font-size: 18px;
+    font-weight: 700;
+} */
+
+.control-button.normal {
+    background: #e6f6ef;
+    color: #065f46;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.control-button.abnormal {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid rgba(248, 113, 113, 0.6);
 }
 
 .fab {

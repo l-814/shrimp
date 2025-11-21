@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+﻿from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import os
 import sqlite3
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -7,6 +7,8 @@ from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
 import pytz
 import requests
+import threading
+import time
 # 若需DCbot回答問題
 # import discord
 # from discord.ext import commands
@@ -23,8 +25,12 @@ os.makedirs(app.instance_path, exist_ok=True)
 DB_PATH = os.path.join(app.instance_path, 'users.db')
 
 
+def get_connection():
+    return sqlite3.connect(DB_PATH, timeout=10, check_same_thread=False)
+
+
 def ensure_alert_schema():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='alerts'")
     if not c.fetchone():
@@ -100,6 +106,8 @@ SENSOR_NAME_MAP = {
 
 VALID_POOL_IDS = {'1', '2', '3', '4'}
 VALID_SETTING_TYPES = {'interval', 'feed'}
+AUTO_ALERT_INTERVAL = int(os.environ.get('AUTO_ALERT_INTERVAL', '1'))
+_monitor_thread_started = False
 
 
 def send_alert(message: str):
@@ -161,9 +169,6 @@ def build_alert_message(pool_id, sensor_type, value, description, event_time, no
         f"{event_name}通知\n"
         f"池號：{pool_id} 號\n"
         f"{detail}"
-        # f"異常項目：{sensor_name}\n"
-        # f"異常數值：{value}\n"
-        # f"正常範圍：{description}\n"
         f"發生時間：{event_time}\n"
         f"本次為第{notify_count}次通知，請盡快處理！"
     )
@@ -171,7 +176,7 @@ def build_alert_message(pool_id, sensor_type, value, description, event_time, no
 
 def upsert_alert_record(cursor, pool_id, sensor_type, description, value, timestamp):
     cursor.execute(
-        "SELECT id FROM alerts WHERE pool_id = ? AND sensor_type = ? AND end_time IS NULL",
+        "SELECT id, is_notified, notify_count FROM alerts WHERE pool_id = ? AND sensor_type = ? AND end_time IS NULL",
         (pool_id, sensor_type)
     )
     row = cursor.fetchone()
@@ -180,16 +185,18 @@ def upsert_alert_record(cursor, pool_id, sensor_type, description, value, timest
             "UPDATE alerts SET description = ?, value = ?, timestamp = ? WHERE id = ?",
             (description, value, timestamp, row[0])
         )
-        return row[0], False
+        already_notified = bool(row[1])
+        notify_count = row[2] or 0
+        return row[0], not already_notified, notify_count
 
     cursor.execute(
         '''
-        INSERT INTO alerts (pool_id, sensor_type, description, value, timestamp, status, start_time, end_time, is_notified)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0)
+        INSERT INTO alerts (pool_id, sensor_type, description, value, timestamp, status, start_time, end_time, is_notified, notify_count)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, 0)
         ''',
         (pool_id, sensor_type, description, value, timestamp, '未處理', timestamp)
     )
-    return cursor.lastrowid, True
+    return cursor.lastrowid, True, 0
 
 
 def resolve_alert_record(cursor, pool_id, sensor_type, timestamp):
@@ -416,8 +423,7 @@ def history():
 def monitor():
     return render_template('monitor.html')
 
-@app.route('/api/latest-data/<pool_id>')
-def latest_data(pool_id):
+def process_latest_data(pool_id: str):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
@@ -433,7 +439,7 @@ def latest_data(pool_id):
     data = c.fetchone()
     if not data:
         conn.close()
-        return jsonify({'error': 'No data found'}), 404
+        return None, 'No data found', 404
 
     temp, psu, ph, do, orp, timestamp = data
     temp_min, temp_max, psu_min, psu_max, ph_min, ph_max, do_min, do_max, orp_min, orp_max = oddset
@@ -457,16 +463,18 @@ def latest_data(pool_id):
     for sensor, is_abn in abnormal.items():
         if is_abn:
             desc = range_map[sensor]
-            alert_id, created = upsert_alert_record(c, pool_id, sensor, desc, value_map[sensor], timestamp)
-            if created:
-                notify_count = 1
-                message = build_alert_message(pool_id, sensor, value_map[sensor], desc, timestamp, notify_count)
+            alert_id, should_notify, notify_count = upsert_alert_record(
+                c, pool_id, sensor, desc, value_map[sensor], timestamp
+            )
+            if should_notify:
+                new_count = (notify_count or 0) + 1
+                message = build_alert_message(pool_id, sensor, value_map[sensor], desc, timestamp, new_count)
                 success, detail = send_alert(message)
                 notified_at = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S") if success else None
                 if success:
                     c.execute(
                         "UPDATE alerts SET is_notified = 1, notified_at = ?, notify_count = ? WHERE id = ?",
-                        (notified_at, notify_count, alert_id)
+                        (notified_at, new_count, alert_id)
                     )
                 else:
                     app.logger.warning('通知傳送失敗：%s', detail)
@@ -476,7 +484,7 @@ def latest_data(pool_id):
     conn.commit()
     conn.close()
 
-    return jsonify({
+    return {
         'temp': temp, 'psu': psu, 'ph': ph, 'do': do, 'orp': orp,
         'timestamp': timestamp,
         'abnormal': abnormal,
@@ -487,7 +495,73 @@ def latest_data(pool_id):
             'do_min': do_min, 'do_max': do_max,
             'orp_min': orp_min, 'orp_max': orp_max
         }
-    })
+    }, None, 200
+
+
+def alert_monitor_loop():
+    interval = max(AUTO_ALERT_INTERVAL, 1)
+    app.logger.info('Auto alert monitor started (interval %s seconds)', interval)
+    while True:
+        for pool in sorted(VALID_POOL_IDS):
+            try:
+                process_latest_data(pool)
+            except Exception as exc:
+                app.logger.exception('Auto alert monitor exception for pool %s: %s', pool, exc)
+        time.sleep(interval)
+
+
+def ensure_monitor_thread():
+    global _monitor_thread_started
+    if _monitor_thread_started:
+        return
+    thread = threading.Thread(target=alert_monitor_loop, name='alert-monitor', daemon=True)
+    thread.start()
+    _monitor_thread_started = True
+
+
+@app.route('/api/latest-data/<pool_id>')
+def latest_data(pool_id):
+    result, error_msg, status_code = process_latest_data(pool_id)
+    if error_msg:
+        return jsonify({'error': error_msg}), status_code
+    return jsonify(result)
+
+
+@app.route('/api/action-status')
+def action_status():
+    pool_id = request.args.get('pool_id', '').strip()
+    if pool_id not in VALID_POOL_IDS:
+        return jsonify({'error': '池號不正確'}), 400
+
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    rows = c.execute(
+        '''
+        SELECT sensor_type, start_time, description
+        FROM alerts
+        WHERE sensor_type IN ('behavior', 'food')
+          AND end_time IS NULL
+          AND pool_id = ?
+        ORDER BY start_time DESC
+        ''',
+        (pool_id,)
+    ).fetchall()
+    conn.close()
+
+    default_status = {'abnormal': False, 'timestamp': None, 'description': None}
+    result = {'behavior': default_status.copy(), 'food': default_status.copy()}
+
+    for row in rows:
+        key = row['sensor_type']
+        if key in result:
+            result[key] = {
+                'abnormal': True,
+                'timestamp': row['start_time'],
+                'description': row['description'],
+            }
+
+    return jsonify(result)
 
 @app.route('/api/history/latest/<pool_id>')
 def api_history_latest(pool_id):
@@ -495,7 +569,6 @@ def api_history_latest(pool_id):
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # 抓最新 N 筆資料，例如最新 20 筆
     c.execute('''
         SELECT timestamp, temp, psu, ph, do, orp
         FROM sensor_data
@@ -530,7 +603,7 @@ def api_history():
     conn.close()
 
     if not rows:
-        return jsonify({'error': '查無資料'}), 404  # 查無資料時回 404 與訊息
+        return jsonify({'error': '查無資料'}), 404
 
     result = {
         "temp": {}, "psu": {}, "ph": {}, "do": {}, "orp": {}
@@ -809,6 +882,8 @@ def oddset_check():
 
     return html
 
+ensure_monitor_thread()
 
 if __name__ == "__main__":
+    ensure_monitor_thread()
     app.run(host="0.0.0.0", port=1000, debug=True)

@@ -91,8 +91,14 @@
                 </div>
             </section>
             <div class="control-buttons">
-                <button>投料</button>
-                <button>行為</button>
+                <button id="control-feed" class="control-button normal" type="button" disabled>
+                    <span class="control-button__label">投料</span>
+                    <span class="control-button__state" id="control-feed-state">正常</span>
+                </button>
+                <button id="control-behavior" class="control-button normal" type="button" disabled>
+                    <span class="control-button__label">行為</span>
+                    <span class="control-button__state" id="control-behavior-state">正常</span>
+                </button>
             </div>
         </div>
     </div>
